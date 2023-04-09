@@ -1,3 +1,27 @@
+Metadata-Version: 2.1
+Name: sagemaker_studio_autoshutdown
+Version: 0.1.5
+Summary: A JupyterLab extension to auto shutdown Idle Kernel Gateways in Sagemaker Studio
+Home-page: https://aws.amazon.com/sagemaker/
+Author: Pavan Kumar Sunder
+License: BSD-3-Clause
+Keywords: Jupyter,JupyterLab
+Platform: Linux
+Platform: Mac OS X
+Platform: Windows
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Framework :: Jupyter
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+License-File: LICENSE
+License-File: NOTICE
+
 # SageMaker-Studio-Autoshutdown-Extension-GPU-Custom
 
 This repository is a fork from [aws-samples/sagemaker-studio-auto-shutdown-extension](https://github.com/aws-samples/sagemaker-studio-auto-shutdown-extension) to create a custom version that provides different auto-shutdown behaviour for GPU instances vs CPU instances used within SageMaker Studio.
