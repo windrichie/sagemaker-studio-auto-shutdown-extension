@@ -32,11 +32,12 @@ class SettingsHandler(APIHandler):
         global base_url
         global idle_checker
         input_data = self.get_json_body()
-        idle_checker.idle_time = int(input_data["idle_time"]) * 60  # convert to seconds
+        idle_checker.idle_time_cpu = int(input_data["idle_time"]) * 60  # convert to seconds
         if "keep_terminals" in input_data:
             idle_checker.keep_terminals = input_data["keep_terminals"]
         data = {
-            "idle_time": str(idle_checker.idle_time),
+            "idle_time_cpu": str(idle_checker.idle_time_cpu),
+            "idle_time_gpu": str(idle_checker.idle_time_gpu),
             "keep_terminals": idle_checker.keep_terminals,
         }
         self.finish(json.dumps(data))
@@ -54,7 +55,8 @@ class RouteHandler(APIHandler):
         self.finish(
             json.dumps(
                 {
-                    "idle_time": idle_checker.idle_time,
+                    "idle_time_cpu": idle_checker.idle_time_cpu,
+                    "idle_time_gpu": idle_checker.idle_time_gpu,
                     "keep_terminals": idle_checker.keep_terminals,
                     "count": idle_checker.get_runcounts()
                 }
@@ -68,7 +70,9 @@ class RouteHandler(APIHandler):
 
         client = tornado.httpclient.AsyncHTTPClient()
         input_data = self.get_json_body()
-        idle_time = int(input_data["idle_time"]) * 60  # convert to seconds
+        idle_time_cpu = int(input_data["idle_time_cpu"]) * 60  # convert to seconds
+        # TODO: get idle_time_gpu from input data
+        idle_time_gpu = int(input_data["idle_time_gpu"]) * 60 # convert to seconds
         # Get the value of keep_terminals -- New line
         keep_terminals = input_data["keep_terminals"]
 
@@ -78,7 +82,7 @@ class RouteHandler(APIHandler):
             }
             # start background job
             idle_checker.start(
-                self.base_url, self.log, client, idle_time, keep_terminals
+                self.base_url, self.log, client, idle_time_cpu, idle_time_gpu, keep_terminals
             )
             data["count"] = idle_checker.get_runcounts()
             self.finish(json.dumps(data))

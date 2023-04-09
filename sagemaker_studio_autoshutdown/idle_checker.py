@@ -19,7 +19,9 @@ from contextlib import suppress
 from datetime import datetime
  
 from notebook.utils import url_path_join
- 
+
+# declare gpu instance classes as static variable
+GPU_INSTANCE_CLASS_LIST = ['p3', 'p3dn', 'g4dn', 'g5']
  
 class IdleChecker(object):
     def __init__(self):
@@ -28,7 +30,9 @@ class IdleChecker(object):
         self.count = 0
         self.task = None
         self.errors = None
-        self.idle_time = 7200  # default idle time in seconds
+        self.idle_time_cpu = 7200  # default idle time in seconds
+        # TODO: self.idle_time_gpu = xxxx # default GPU idle time in seconds
+        self.idle_time_gpu = 7200
         self.ignore_connections = True
         self.tornado_client = None
         self._xsrf_token = None
@@ -61,8 +65,10 @@ class IdleChecker(object):
                 self.log.error(self.errors)
  
     # Entrypoint function to get the value from handlers(POST API call) and start background job
-    def start(self, base_url, log_handler, client, idle_time, keep_terminals):
-        self.idle_time = idle_time
+    def start(self, base_url, log_handler, client, idle_time_cpu, idle_time_gpu, keep_terminals):
+        # TODO: update function to include a new parameter `idle_time_gpu``
+        self.idle_time_cpu = idle_time_cpu
+        self.idle_time_gpu = idle_time_gpu
         self.tornado_client = client
         self.base_url = base_url
         self.log = log_handler
@@ -89,15 +95,21 @@ class IdleChecker(object):
         return self.errors
  
     # Function to check if the notebook is in Idle state
-    def is_idle(self, last_activity, seconds=False):
+    def is_idle(self, last_activity, is_gpu, seconds=False):
+        # TODO: check if GPU and use the correct idle_time
+        if is_gpu:
+            idle_time = self.idle_time_gpu
+        else:
+            idle_time = self.idle_time_cpu
+
         last_activity = datetime.strptime(last_activity, "%Y-%m-%dT%H:%M:%S.%fz")
         self.log.info(
             "comparing idle time limit "
-            + str(self.idle_time)
+            + str(idle_time)
             + " and elapsed time "
             + str((datetime.now() - last_activity).total_seconds())
         )
-        if (datetime.now() - last_activity).total_seconds() > self.idle_time:
+        if (datetime.now() - last_activity).total_seconds() > idle_time:
             self.log.info(
                 "Notebook is idle. Last activity time = " + str(last_activity)
             )
@@ -130,6 +142,15 @@ class IdleChecker(object):
         apps = json.loads(response.body)
         self.log.info(" Running App name is = " + str(apps))
         return apps
+
+    # Function to check if the app uses a GPU instance type
+    def is_instance_type_gpu(self, instance_type):
+        instance_class = instance_type.split('.')[1]
+        print(instance_class)
+        if instance_class in GPU_INSTANCE_CLASS_LIST:
+            return True
+        else:
+            return False
  
     # Function to build app information ( kernel sessions and image terminals)
     async def build_app_info(self):
@@ -137,6 +158,10 @@ class IdleChecker(object):
         apps_info = {}
         for app in apps:
             apps_info[app["app_name"]] = {"app": app, "sessions": [], "terminals": []}
+            if self.is_instance_type_gpu(app['instance_type']):
+                apps_info[app["app_name"]]['app']['is_gpu'] = True
+            else:
+                apps_info[app["app_name"]]['app']['is_gpu'] = False
  
         sessions = await self.get_sessions()
         for notebook in sessions:
@@ -196,18 +221,18 @@ class IdleChecker(object):
             self.inservice_apps.pop(app_id, None)
  
     # Function to check the notebook status
-    def check_notebook(self, notebook):
+    def check_notebook(self, notebook, is_gpu):
         terminate = True
         if notebook["kernel"]["execution_state"] in ("idle", "starting"):
             self.log.info("found idle/starting session:" + str(notebook))
             if not self.ignore_connections:
                 if notebook["kernel"]["connections"] == 0:
-                    if not self.is_idle(notebook["kernel"]["last_activity"]):
+                    if not self.is_idle(notebook["kernel"]["last_activity"], is_gpu):
                         terminate = False
                 else:
                     terminate = False
             else:
-                if not self.is_idle(notebook["kernel"]["last_activity"]):
+                if not self.is_idle(notebook["kernel"]["last_activity"], is_gpu):
                     terminate = False
         else:
             terminate = False
@@ -242,7 +267,13 @@ class IdleChecker(object):
                     inservice_apps[app_name] = time.time()
  
                 else:
-                    if int(time.time() - inservice_apps[app_name]) > self.idle_time:
+                    # TODO: check for GPU and use correct idle time
+                    if app["app"]["is_gpu"]:
+                        idle_time = self.idle_time_gpu
+                    else:
+                        idle_time = self.idle_time_cpu
+
+                    if int(time.time() - inservice_apps[app_name]) > idle_time:
                         self.log.info(
                             "Keep alive time for terminal reached : " + str(app_name)
                         )
@@ -265,11 +296,17 @@ class IdleChecker(object):
  
                 # Check if the current app is part of the in service apps
                 if app_name not in inservice_apps:
-                    # Regsiter a new inservice app
+                    # Register a new inservice app
                     inservice_apps[app_name] = time.time()
  
                 else:
-                    if int(time.time() - inservice_apps[app_name]) > self.idle_time:
+                    # TODO: check for GPU
+                    if app["app"]["is_gpu"]:
+                        idle_time = self.idle_time_gpu
+                    else:
+                        idle_time = self.idle_time_cpu
+
+                    if int(time.time() - inservice_apps[app_name]) > idle_time:
                         self.log.info(
                             "Keepalive time for terminal reached : " + str(app_name)
                         )
@@ -278,8 +315,9 @@ class IdleChecker(object):
             elif num_sessions > 0:
                 # let's check if we have idle notebooks to kill
                 nb_deleted = 0
+                is_gpu = app["app"]["is_gpu"]
                 for notebook in app["sessions"]:
-                    if self.check_notebook(notebook):
+                    if self.check_notebook(notebook, is_gpu):
                         # handle kernel sessions which are stuck in "starting" state
                         if notebook["kernel"]["execution_state"] == "starting":
                             nb_deleted += 1
