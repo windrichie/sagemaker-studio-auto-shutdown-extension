@@ -10,9 +10,9 @@
 
 set -eux
 
-# timeout in minutes
-export TIMEOUT_CPU_IN_MINS=120
-export TIMEOUT_GPU_IN_MINS=20
+# specify respective timeouts for cpu and gpu in minutes
+export TIMEOUT_CPU_IN_MINS=360
+export TIMEOUT_GPU_IN_MINS=60
 
 # Should already be running in user home directory, but just to check:
 cd /home/sagemaker-user
@@ -45,7 +45,7 @@ chmod +x .auto-shutdown/set-time-interval.sh
 # "wget" is not part of the base Jupyter Server image, you need to install it first if needed to download the tarball
 sudo yum install -y wget
 # You can download the tarball from GitHub or alternatively, if you're using VPCOnly mode, you can host on S3
-wget -O .auto-shutdown/extension.tar.gz https://github.com/windrichie/sagemaker-studio-auto-shutdown-extension/raw/main/sagemaker_studio_autoshutdown-0.1.5-gpu-custom.tar.gz
+wget -O .auto-shutdown/extension.tar.gz https://github.com/windrichie/sagemaker-studio-auto-shutdown-extension-gpu-custom/raw/main/sagemaker_studio_autoshutdown-0.1.5-gpu-custom.tar.gz
 
 # Or instead, could serve the tarball from an S3 bucket in which case "wget" would not be needed:
 # aws s3 cp s3://<S3 Bucket>/sagemaker_studio_autoshutdown-0.1.5-gpu-custom.tar.gz .auto-shutdown/extension.tar.gz
