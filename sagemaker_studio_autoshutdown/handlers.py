@@ -71,7 +71,6 @@ class RouteHandler(APIHandler):
         client = tornado.httpclient.AsyncHTTPClient()
         input_data = self.get_json_body()
         idle_time_cpu = int(input_data["idle_time_cpu"]) * 60  # convert to seconds
-        # TODO: get idle_time_gpu from input data
         idle_time_gpu = int(input_data["idle_time_gpu"]) * 60 # convert to seconds
         # Get the value of keep_terminals -- New line
         keep_terminals = input_data["keep_terminals"]

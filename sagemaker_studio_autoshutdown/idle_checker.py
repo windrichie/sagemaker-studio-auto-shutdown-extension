@@ -31,8 +31,7 @@ class IdleChecker(object):
         self.task = None
         self.errors = None
         self.idle_time_cpu = 7200  # default idle time in seconds
-        # TODO: self.idle_time_gpu = xxxx # default GPU idle time in seconds
-        self.idle_time_gpu = 7200
+        self.idle_time_gpu = 7200  # default idle time in seconds
         self.ignore_connections = True
         self.tornado_client = None
         self._xsrf_token = None
@@ -66,7 +65,6 @@ class IdleChecker(object):
  
     # Entrypoint function to get the value from handlers(POST API call) and start background job
     def start(self, base_url, log_handler, client, idle_time_cpu, idle_time_gpu, keep_terminals):
-        # TODO: update function to include a new parameter `idle_time_gpu``
         self.idle_time_cpu = idle_time_cpu
         self.idle_time_gpu = idle_time_gpu
         self.tornado_client = client
@@ -96,7 +94,6 @@ class IdleChecker(object):
  
     # Function to check if the notebook is in Idle state
     def is_idle(self, last_activity, is_gpu, seconds=False):
-        # TODO: check if GPU and use the correct idle_time
         if is_gpu:
             idle_time = self.idle_time_gpu
         else:
@@ -267,7 +264,6 @@ class IdleChecker(object):
                     inservice_apps[app_name] = time.time()
  
                 else:
-                    # TODO: check for GPU and use correct idle time
                     if app["app"]["is_gpu"]:
                         idle_time = self.idle_time_gpu
                     else:
@@ -300,7 +296,6 @@ class IdleChecker(object):
                     inservice_apps[app_name] = time.time()
  
                 else:
-                    # TODO: check for GPU
                     if app["app"]["is_gpu"]:
                         idle_time = self.idle_time_gpu
                     else:
